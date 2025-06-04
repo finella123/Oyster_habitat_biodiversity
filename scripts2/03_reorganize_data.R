@@ -1,6 +1,7 @@
 # This is my Master's thesis project- exploring the effects of oyster trophic interactions on the benthic community
 #This script is to reorganize my data 
-source("scripts2/01_installpackagesM.R")
+source("scripts2/01_install_packages.R")
+#only use this if you made changes to original data and need to refresh
 source("scripts2/02_import_data-EX.R")
 
 #####Calculate sample abundance and dry weight from the sub sample amphipod and isopod data-----
@@ -95,22 +96,16 @@ wd3 <- wd2%>%
   summarise(Abundance=sum(Abundance),
             Biomass=sum(Biomass),
             Abundance.m2=sum(Abundance.m2),
-            Biomass.m2=sum(Biomass.m2))
-wd3 <- wd3[-1163, ] # remove WTF-7 since it will not be used in this dataset
+            Biomass.m2=sum(Biomass.m2))%>%
+  filter(!TaxaID %in% c("egg-2", "egg-3", "egg-1", "wtf-6", "wtf-9", "wtf-4","mus-1", "poly-uni","shmp-uni","gob-uni","amp-uni","fsh-juv","blen-juv","fsh-uni", "wtf-7"))
+#remove ID's that should not be includede for the analysis
+#removes ~ 350 rows
+
 any(is.na(wd3))# final check for outliers
 
+#left off
 
-#this is where I need to get all my taxa ids and make a data sheet with the updated id's 
-unique(wd3$TaxaID)
-# Get unique values from a column (example: "column_name" in data frame "df")
-unique_values <- unique(wd3$TaxaID)
 
-# Turn into a data frame
-unique_df <- data.frame(unique_values)
-
-# Save to CSV
-write.csv(unique_df, "unique_values.csv", row.names = FALSE)
-#LEFT OFF HERE
 
 
 
