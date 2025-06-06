@@ -59,6 +59,10 @@ wd1 <- biomass%>%
   mutate(Abundance=case_when(
     Voucher=="Y"~Abundance+1,
     Voucher=="N"~Abundance))
+#add 1 to the abundance of wtf-7 because it is not working with the code. 
+wd1[168, "Abundance"] <- "1"
+
+wd1$Abundance <- as.numeric(wd1$Abundance)
 
 #calculate average dry weight for each taxa to add to biomass after 
 adw<-wd1%>%
@@ -92,24 +96,21 @@ wd3 <- wd2%>%
   left_join(upid)%>%
   select(-TaxaID)%>%
   rename(TaxaID=upID)%>%
+  mutate(TaxaID = if_else(TaxaID == "poly-8", "poly-1", TaxaID))%>%
   group_by(Site, Sample, TaxaID,season)%>%
   summarise(Abundance=sum(Abundance),
             Biomass=sum(Biomass),
             Abundance.m2=sum(Abundance.m2),
             Biomass.m2=sum(Biomass.m2))%>%
-  filter(!TaxaID %in% c("egg-2", "egg-3", "egg-1", "wtf-6", "wtf-9", "wtf-4","mus-1", "poly-uni","shmp-uni","gob-uni","amp-uni","fsh-juv","blen-juv","fsh-uni", "wtf-7"))
+  filter(!TaxaID %in% c("egg-2", "egg-3", "egg-1", "wtf-6", "wtf-9", "wtf-4","mus-1", "poly-uni","shmp-uni","gob-uni","amp-uni","fsh-juv","blen-juv","fsh-uni"))%>%
+  left_join(real.id, by = "TaxaID")
 #remove ID's that should not be includede for the analysis
 #removes ~ 350 rows
 
-any(is.na(wd3))# final check for outliers
-
-#left off
-
-
-
-
+any(is.na(wd3))# final check for outliers- looks good!
 
 write_rds(wd3,"wdata2/wd_community_data_m^2.rds")
+write.csv(wd3,"wdata2/wd_community_data_m^2.csv")
 
 ##### Create working data for reef characteristics-----
 # 1 shell height= ">115" because it maxed out the caliper.make it 116 
