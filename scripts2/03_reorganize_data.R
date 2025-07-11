@@ -141,3 +141,4 @@ pair.sh.v <- paired.sh.v%>%
 #Remove 1 outlier due to human error during data entry and no way to confirm.
 pair.sh.v <- pair.sh.v[-c(537), ]
 write_rds(pair.sh.v,"wdata2/wd_sh_ov_predictor_data.rds") 
+
