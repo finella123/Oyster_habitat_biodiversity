@@ -103,7 +103,11 @@ wd3 <- wd2%>%
             Abundance.m2=sum(Abundance.m2),
             Biomass.m2=sum(Biomass.m2))%>%
   filter(!TaxaID %in% c("egg-2", "egg-3", "egg-1", "wtf-6", "wtf-9", "wtf-4","mus-1", "poly-uni","shmp-uni","gob-uni","amp-uni","fsh-juv","blen-juv","fsh-uni"))%>%
-  left_join(real.id, by = "TaxaID")
+  left_join(real.id, by = "TaxaID")%>%
+  filter(Site!='M')
+
+wd3$Site <- as.integer(wd3$Site)
+
 #remove ID's that should not be includede for the analysis
 #removes ~ 350 rows
 
