@@ -15,20 +15,20 @@ reef2 <- reef1%>%
 com2 <- com1%>%
   group_by(Site, Sample, season) %>%
   summarize(
-    spr= n_distinct(TaxaID),
+    sprm2= n_distinct(TaxaID),
     abm2=sum(Abundance.m2))
   
 rac <- reef2 %>%
-  left_join(com2, by = c("Site", "Sample", "season"))
-
-
-
-
+  left_join(com2, by = c("Site", "Sample", "season"))%>%
+  drop_na() # I have 16 sites with no com data because I only processed 6/7 per site
+any(is.na(rac))# final check for issues- looks good!
 
 
 ##### ABUNDANCE ----
-### sample level LOV
-lod.ab.samp <- glmmTMB(log(t.abund) ~ mlov*season,data = acon%>% mutate(season = relevel(season,ref="w")))
-summary(mlovt.abund2)
-glmm.resids(mlovt.abund2)
-Anova(mlovt.abund2, type="III")
+### sample level LOD
+lod.ab.samp <- glmmTMB(abm2 ~ oys.density*season,data = rac)
+
+
+summary(lod.ab.samp)
+glmm.resids(lod.ab.samp)
+Anova(lod.ab.samp, type="III")

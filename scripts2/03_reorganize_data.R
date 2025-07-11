@@ -2,7 +2,7 @@
 #This script is to reorganize my data 
 source("scripts2/01_install_packages.R")
 #only use this if you made changes to original data and need to refresh
-source("scripts2/02_import_data-EX.R")
+#ource("scripts2/02_import_data-EX.R")
 
 #####Calculate sample abundance and dry weight from the sub sample amphipod and isopod data-----
 #all data from subsampling came from tray methods
