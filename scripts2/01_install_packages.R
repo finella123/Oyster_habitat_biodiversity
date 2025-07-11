@@ -15,7 +15,8 @@ if(!require(GpGp))install.packages("GpGp");library(GpGp)
 if(!require(openxlsx))install.packages("openxlsx");library(openxlsx)
 if(!require(viridis))install.packages("viridis");library(viridis)
 if(!require(glmmTMB))install.packages("glmmTMB");library(glmmTMB)
-
+if(!require(DHARMa))install.packages("DHARMa");library(DHARMa)
+if(!require(car))install.packages("car");library(car)
 #load packages script
 #lp<-function(pck){
 #  if(!require(pck,character.only = TRUE))install.packages(pck);library(pck,character.only = TRUE)
