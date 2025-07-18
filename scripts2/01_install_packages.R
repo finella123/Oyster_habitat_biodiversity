@@ -1,5 +1,5 @@
 #This project looks at the effects of trophic interactions of foundation species on dependent communities
-#this is is to load packages needed for this project
+#this script is to load packages needed for this project
 
 #This code says if the package needs to be installed, install it, if not, load from library
 if(!require(gsheet))install.packages("gsheet");library(gsheet)
@@ -17,7 +17,3 @@ if(!require(viridis))install.packages("viridis");library(viridis)
 if(!require(glmmTMB))install.packages("glmmTMB");library(glmmTMB)
 if(!require(DHARMa))install.packages("DHARMa");library(DHARMa)
 if(!require(car))install.packages("car");library(car)
-#load packages script
-#lp<-function(pck){
-#  if(!require(pck,character.only = TRUE))install.packages(pck);library(pck,character.only = TRUE)
-#}
