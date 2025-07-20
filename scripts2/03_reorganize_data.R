@@ -146,3 +146,7 @@ pair.sh.v <- paired.sh.v%>%
 pair.sh.v <- pair.sh.v[-c(537), ]
 write_rds(pair.sh.v,"wdata2/wd_sh_ov_predictor_data.rds") 
 
+#object only selecting taxa and ffg
+ffg2 <- ffg%>%
+  select(TaxaID,ffg, oyster_predator)
+write_rds(ffg2,"wdata2/functional_feeding_groups_data.rds") 
