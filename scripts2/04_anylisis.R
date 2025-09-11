@@ -55,10 +55,11 @@ glmm.resids<-function(model){
 }
 ##### ABUNDANCE ----
 ###! microhabitat abundance-----
-lod.ab.samp <- glmmTMB(log(abm2) ~ oys.density*seasons+ (1|Site) ,data = rac)
+lod.ab.samp <- glmmTMB(log(abm2) ~ oys.density*season+ (1|Site) ,data = rac%>% mutate(season = relevel(season,ref="w")))
 summary(lod.ab.samp)
 glmm.resids(lod.ab.samp)
 Anova(lod.ab.samp, type="III")
+
 
 # Extract residuals
 res <- residuals(lod.ab.samp)
@@ -81,7 +82,7 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
   theme(legend.position = "top")
 
 ###! reef level abundance-----
-mlod.ab.reef <- glmmTMB(log(abm2) ~ moys.density*season+ (1|Site) ,data = rac)
+mlod.ab.reef <- glmmTMB(log(abm2) ~ moys.density*season+ (1|Site) ,data = rac%>% mutate(season = relevel(season,ref="w")))
 #using this random effect to account for the shared structure of multiple samples having the sample mlod- so the model doesnt think each mlod is a unique value
 summary(mlod.ab.reef)
 glmm.resids(mlod.ab.reef)
@@ -109,7 +110,7 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
 ### site level abundance-----
 #### SPECIES RICHNESS-----
 ###! microhabitat richness-----
-lod.sprm2.samp <- glmmTMB(sprm2 ~ oys.density*season+ (1|Site) ,data = rac)
+lod.sprm2.samp <- glmmTMB(sprm2 ~ oys.density*season+ (1|Site) ,data = rac%>% mutate(season = relevel(season,ref="w")))
 summary(lod.sprm2.samp)
 glmm.resids(lod.sprm2.samp)
 Anova(lod.sprm2.samp, type="III")
@@ -136,7 +137,7 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
 
 
 ###! reef level richness-----
-mlod.spr.reef <- glmmTMB(sprm2 ~ moys.density*season+ (1|Site) ,data = rac)
+mlod.spr.reef <- glmmTMB(sprm2 ~ moys.density*season+ (1|Site) ,data = rac%>% mutate(season = relevel(season,ref="w")))
 #using this random effect to account for the shared structure of multiple samples having the sample mlod- so the model doesnt think each mlod is a unique value
 summary(mlod.spr.reef)
 glmm.resids(mlod.spr.reef)
@@ -187,7 +188,7 @@ ggplot(w.lod.ab.nmds, aes(x = NMDS1, y = NMDS2)) +
     shape = "Season"
   ) +
   theme_minimal(base_size = 14) +
-  theme(legend.position = "right")+ stat_ellipse(aes(group = season), linetype = "dashed", color = "gray40")+ scale_color_viridis_c(option = "plasma")#+ facet_wrap(~season)
+  theme(legend.position = "right")+ stat_ellipse(aes(group = season), linetype = "dashed", color = "gray40")+ scale_color_viridis_c(option = "plasma")+ facet_wrap(~season)
 ###! reef level comp------
 #nmds for abundance between seasons and live oyster density
 
@@ -217,13 +218,13 @@ ggplot(w.mlod.ab.nmds, aes(x = NMDS1, y = NMDS2)) +
 
 ##### FFG ABUNDANCE ----
 ### microhabitat FFG abundance-----
-lod.ab.samp <- glmmTMB(log(abm2) ~ oys.density*season+ (1|Site) ,data = rac)
-summary(lod.ab.samp)
-glmm.resids(lod.ab.samp)
-Anova(lod.ab.samp, type="III")
+lod.ffg.samp <- glmmTMB(log(abm2) ~ oys.density*season+ (1|Site) ,data = rac%>% mutate(season = relevel(season,ref="w")))
+summary(lod.ffg.samp)
+glmm.resids(lod.ffg.samp)
+Anova(lod.ffg.samp, type="III")
 
 # Extract residuals
-res <- residuals(lod.ab.samp)
+res <- residuals(lod.ffg.samp)
 shapiro.test(res)
 
 # plot log(abm2) vs oyster density, color by season

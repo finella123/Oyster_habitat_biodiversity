@@ -17,11 +17,10 @@ if(!require(viridis))install.packages("viridis");library(viridis)
 if(!require(glmmTMB))install.packages("glmmTMB");library(glmmTMB)
 if(!require(DHARMa))install.packages("DHARMa");library(DHARMa)
 if(!require(car))install.packages("car");library(car)
-<<<<<<< HEAD
+
 if(!require(ggeffects))install.packages("ggeffects");library(ggeffects)
 #load packages script
 #lp<-function(pck){
 #  if(!require(pck,character.only = TRUE))install.packages(pck);library(pck,character.only = TRUE)
 #}
-=======
->>>>>>> ddd3eeffa5d105fc42287a3823634f2190c92c81
+
