@@ -17,8 +17,9 @@ if(!require(viridis))install.packages("viridis");library(viridis)
 if(!require(glmmTMB))install.packages("glmmTMB");library(glmmTMB)
 if(!require(DHARMa))install.packages("DHARMa");library(DHARMa)
 if(!require(car))install.packages("car");library(car)
-
 if(!require(ggeffects))install.packages("ggeffects");library(ggeffects)
+if(!require(emmeans))install.packages("emmeans");library(emmeans)
+
 #load packages script
 #lp<-function(pck){
 #  if(!require(pck,character.only = TRUE))install.packages(pck);library(pck,character.only = TRUE)
