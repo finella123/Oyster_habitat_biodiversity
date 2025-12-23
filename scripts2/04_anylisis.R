@@ -61,7 +61,14 @@ ffg5 <- ffg4%>%
 ffgcomcomp <- ffg5[, c("Site", "Sample", "season", "oys.density", "moys.density", "ffg", "ffabm2")]%>%
   pivot_wider(names_from = ffg, values_from = ffabm2, values_fill = 0)
 
-
+ffg_long <- ffgcomcomp %>%
+  pivot_longer(
+    cols = c(c,d,o,p,s,g),   
+    names_to = "FFG",
+    values_to = "ffabm2"
+  )
+ffg_long$FFG <- factor
+ffg_long$season <- factor(ffg_long$season)
 #function for residuals
 glmm.resids<-function(model){
   t1 <- simulateResiduals(model)
@@ -85,7 +92,7 @@ preds <- ggpredict(lod.ab.samp, terms = c("oys.density", "season"))
 
 ggplot(preds, aes(x = x, y = predicted, color = group)) +
   geom_line(size = 1) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA)
   labs(
     x = "Live Oyster Density",
     y = expression(Predicted~abundance~(m^2)),
@@ -95,7 +102,6 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
   ) +
   theme_minimal() +
   theme(legend.position = "top")
-
 ###! reef level abundance-----
 mlod.ab.reef <- glmmTMB(log(abm2) ~ moys.density*season+ (1|Site) ,data = rac%>% mutate(season = relevel(season,ref="w")))
 #using this random effect to account for the shared structure of multiple samples having the sample mlod- so the model doesnt think each mlod is a unique value
@@ -388,18 +394,21 @@ ggplot(ffg_long, aes(x = Site, y = Count, fill = FFG)) +
     panel.grid.minor = element_blank()
   )
 ##### FFG ABUNDANCE ----
-### microhabitat FFG abundance-----
-lod.ffg.samp <- glmmTMB(log(abm2) ~ oys.density*season+ (1|Site) ,data = rac%>% mutate(season = relevel(season,ref="w")))
-summary(lod.ffg.samp)
-glmm.resids(lod.ffg.samp)
-Anova(lod.ffg.samp, type="III")
+### microhabitat FFG abundance----
+### c= carnivore-
+carnivore_mod <- glmmTMB(
+  log(ffabm2 + 1) ~ oys.density * season + (1 | Site),
+  data = ffg_long %>% filter(FFG == "c")%>% mutate(season = relevel(season,ref="w")))
+glmm.resids(carnivore_mod)
+summary(carnivore_mod)
+Anova(carnivore_mod, type = "III")
 
 # Extract residuals
-res <- residuals(lod.ffg.samp)
+res <- residuals(carnivore_mod)
 shapiro.test(res)
 
 # plot log(abm2) vs oyster density, color by season
-preds <- ggpredict(lod.ab.samp, terms = c("oys.density", "season"))
+preds <- ggpredict(carnivore_mod, terms = c("oys.density", "season"))
 
 ggplot(preds, aes(x = x, y = predicted, color = group)) +
   geom_line(size = 1) +
@@ -409,7 +418,7 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
     y = expression(Predicted~abundance~(m^2)),
     color = "Season",
     fill = "Season",
-    title = "Predicted Benthic Abundance by Oyster Density and Season"
+    title = "Predicted Carnivore Abundance by Oyster Density and Season"
   ) +
   theme_minimal() +
   theme(legend.position = "top")
