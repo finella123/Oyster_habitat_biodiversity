@@ -67,7 +67,7 @@ ffg_long <- ffgcomcomp %>%
     names_to = "FFG",
     values_to = "ffabm2"
   )
-ffg_long$FFG <- factor
+ffg_long$FFG <- factor(ffg_long$FFG)
 ffg_long$season <- factor(ffg_long$season)
 #function for residuals
 glmm.resids<-function(model){
