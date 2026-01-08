@@ -69,6 +69,23 @@ ffg_long <- ffgcomcomp %>%
   )
 ffg_long$FFG <- factor(ffg_long$FFG)
 ffg_long$season <- factor(ffg_long$season)
+ffg_long$Site <- factor(ffg_long$Site)
+ffg_long$Sample <- factor(ffg_long$Sample)
+
+#oyster predator dataset
+oys.pred <- ffg4%>%
+  group_by(Site, Sample, season,oyster_predator) %>%
+  summarize(
+    opabm2=sum(Abundance.m2))%>%
+  left_join(reef2)%>%
+  group_by(Site) %>%
+  mutate(moys.density = mean(oys.density))%>%
+  filter(oyster_predator=='y')%>%
+  select(-oyster_predator)
+oys.pred$Site <- factor(oys.pred$Site)
+oys.pred$Sample <- factor(oys.pred$Sample)
+oys.pred$season <- factor(oys.pred$season)
+
 #function for residuals
 glmm.resids<-function(model){
   t1 <- simulateResiduals(model)
@@ -245,156 +262,9 @@ ggplot(w.mlod.ab.nmds, aes(x = NMDS1, y = NMDS2)) +
 
 
 
-##### FFG EXPLORE PERMANOVA----
-### microhabitat----
-#remove mean oyster density because this is the microhabitat analysis
-ffgcomcomp2 <- ffgcomcomp%>%
-  select(-moys.density)
 
-# extract ffg counts
-ffgcounts <- ffgcomcomp2[, c("c", "o", "g", "d", "s", "p")]
-
-#Hellinger standardize because counts vary widely- optional***
-ffg_hel <- decostand(ffgcounts, method = "hellinger")
-
-#model- Test how FFG community composition varies with oyster density and season
-permanova <- adonis2(
-  ffg_hel ~ oys.density * season,
-  data = ffgcomcomp2,
-  method = "bray",   # common for ecological data?
-  permutations = 999,
-  strata= ffgcomcomp2$Site,
-  by="terms" # to test each term individually
-)
-
-#View results
-print(permanova)
- #Functional feeding group composition varies strongly with season, but not with oyster density. The effect of oyster density also does not change across seasons (no interaction).
-
-#check assumptions 
-bd <- betadisper(vegdist(ffg_hel, method = "bray"), ffgcomcomp2$season)
-anova(bd)   # tests homogeneity of dispersion
-plot(bd)    # visualize
-# Permutation test for dispersion
-permutest(bd, permutations = 999)
-
-# Pairwise comparisons if needed
-TukeyHSD(bd)
-
-#### microhabitat oyster density with carnivore ffg-------
-# GLMM: Carnivores as response
-mod_c <- glmmTMB(
-  c ~ oys.density + season + (1|Site),   # fixed effects: oyster density + season, random: Site
-  family = nbinom2,                       # negative binomial for overdispersed counts
-  data = ffgcomcomp2
-)
-
-summary(mod_c)  # view model coefficients and significance
-glmm.resids(mod_c)
-Anova(mod_c, type="III")
-
-# Extract residuals
-res <- residuals(mod_c)
-shapiro.test(res)
-
-
-####loop test--------
-
-# List of functional feeding groups (columns in your data)
-FFGs <- c("c", "o", "g", "d", "s", "p")
-
-# Create a results list
-results_list <- list()
-
-# Create a summary table
-summary_table <- data.frame(
-  FFG = character(),
-  OysterDensity_p = numeric(),
-  Season_p = numeric(),
-  stringsAsFactors = FALSE
-)
-
-# Loop over each FFG
-for(ffg in FFGs){
-  
-  cat("\n### Fitting GLMM for", ffg, "###\n")
-  
-  # Fit negative binomial GLMM
-  mod <- glmmTMB(
-    formula = as.formula(paste(ffg, "~ oys.density + season + (1|Site)")),
-    family = gaussian,
-    data = ffgcomcomp2
-  )
-  
-  # Save model in results list
-  results_list[[ffg]] <- list(model = mod)
-  
-  # Summarize coefficients
-  print(summary(mod))
-  
-  # Simulate residuals
-  res <- simulateResiduals(mod)
-  plot(res, main = paste("Residuals:", ffg))
-  
-  # Dispersion test
-  disp_test <- testDispersion(res)
-  print(disp_test)
-  cat("Dispersion p-value:", disp_test$p.value, "\n")
-  
-  # Zero-inflation test
-  zi_test <- testZeroInflation(res)
-  print(zi_test)
-  cat("Zero-inflation p-value:", zi_test$p.value, "\n")
-  
-  # Post-hoc comparisons for season
-  emm <- emmeans(mod, pairwise ~ season)
-  print(emm$contrasts)
-  
-  # Save emmeans in results list
-  results_list[[ffg]]$emmeans <- emm
-  
-  # Extract p-values for summary table
-  coefs <- summary(mod)$coefficients$cond
-  oyster_p <- coefs["oys.density", "Pr(>|z|)"]
-  
-  # Type II Wald test for season
-  car_test <- Anova(mod, type = 2)
-  season_p <- car_test["season", "Pr(>Chisq)"]
-  
-  # Add to summary table
-  summary_table <- rbind(summary_table,
-                         data.frame(FFG = ffg,
-                                    OysterDensity_p = oyster_p,
-                                    Season_p = season_p))
-}
-
-# Print summary table
-print(summary_table)
-
-
-# Reshape data from wide to long format for plotting
-ffg_long <- ffgcomcomp2 %>%
-  pivot_longer(cols = c("c", "o", "g", "d", "s", "p"),
-               names_to = "FFG",
-               values_to = "Count")
-
-# Factor levels for ordering
-ffg_long$season <- factor(ffg_long$season, levels = c("w","s","u","f"))
-ffg_long$Site <- factor(ffg_long$Site)
-
-# Plot
-ggplot(ffg_long, aes(x = Site, y = Count, fill = FFG)) +
-  geom_bar(stat = "identity", position = "dodge") +  # side-by-side bars for FFGs
-  facet_wrap(~ season, scales = "free_y") +          # one panel per season
-  labs(x = "Site", y = "Abundance (Count)", fill = "Functional Feeding Group") +
-  theme_bw(base_size = 14) +
-  theme(
-    strip.background = element_rect(fill = "lightgray"),
-    panel.grid.major = element_line(color = "gray90"),
-    panel.grid.minor = element_blank()
-  )
 ##### FFG ABUNDANCE ----
-### microhabitat FFG abundance----
+###! microhabitat FFG abundance----
 ### c= carnivore-----
 carnivore_mod <- glmmTMB(
   log(ffabm2 + 1) ~ oys.density * season + (1 | Site),
@@ -565,21 +435,20 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
   theme(legend.position = "top")
 
 
-### reef level FFG abundance-----
-### site level FFG abndance-----
-#### FFG SPECIES RICHNESS-----
-### microhabitat FFG richness-----
-lod.sprm2.samp <- glmmTMB(sprm2 ~ oys.density*season+ (1|Site) ,data = rac)
-summary(lod.sprm2.samp)
-glmm.resids(lod.sprm2.samp)
-Anova(lod.sprm2.samp, type="III")
+### oyster consumers ---------
+oys_pred_mod <- glmmTMB(
+  opabm2 ~ oys.density * season + (1 | Site),
+  data = oys.pred %>% mutate(season = relevel(season,ref="w")))
+glmm.resids(oys_pred_mod)
+summary(oys_pred_mod)
+Anova(oys_pred_mod, type = "III")
 
 # Extract residuals
-res <- residuals(lod.sprm2.samp)
+res <- residuals(oys_pred_mod)
 shapiro.test(res)
 
-# plot sprm2 vs oyster density, color by season
-preds <- ggpredict(lod.sprm2.samp, terms = c("oys.density", "season"))
+# plot oys pred abm2 vs oyster density, color by season
+preds <- ggpredict(oys_pred_mod, terms = c("oys.density", "season"))
 
 ggplot(preds, aes(x = x, y = predicted, color = group)) +
   geom_line(size = 1) +
@@ -589,14 +458,12 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
     y = expression(Predicted~abundance~(m^2)),
     color = "Season",
     fill = "Season",
-    title = "Predicted Benthic Richness by Oyster Density and Season"
+    title = "Predicted Oyster Predator Abundance by Oyster Density and Season"
   ) +
   theme_minimal() +
   theme(legend.position = "top")
-
-
-### reef level FFG richness-----
-### site level FFG richness-----
+### reef level FFG abundance-----
+### site level FFG abndance-----
 ##### FFG COMMUNITY COMPOSITION-----
 ### microhabitat FFG comp-----
 ### reef level FFG comp-----
