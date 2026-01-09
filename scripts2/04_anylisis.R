@@ -1,7 +1,7 @@
 # This is my Master's thesis project- exploring the effects of oyster trophic interactions on the benthic community
 #This script is to anlyze the data
 
-#9/25/25 note- i might have to go back and run these analyses again for the regular community because I did mean oyster density by season when I think I should have done mean oyster density by just site. probably should make abundances whole numbers too
+#9/25/25 note- i might have to go back and run these analyses again for the regular community because I did mean oyster density by season when I think I should have done mean oyster density by just site. 
 source("scripts2/01_install_packages.R")
 
 #loading data and getting into correct format for analysis-----
@@ -25,11 +25,17 @@ com2 <- com1%>%
 rac <- reef2 %>%
   left_join(com2, by = c("Site", "Sample", "season"))%>%
   drop_na()%>% # I have 16 sites with no com data because I only processed 6/7 per site
-  group_by(Site, season) %>%
-  mutate(moys.density = mean(oys.density)) %>%
-  ungroup()
+  group_by(Site,season) %>%
+  mutate(moys.density = mean(oys.density))
+#%>%
+  # ungroup()%>%
+  # group_by(Site,Sample) %>%
+  # mutate(oys.density = mean(oys.density)) %>%
+  # ungroup()
 
 rac$season <- as.factor(rac$season)
+rac$Site <- as.factor(rac$Site)
+rac$Sample <- as.factor(rac$Sample)
 any(is.na(rac))# final check for issues- looks good!
 
 comcomp <- com1%>%
@@ -92,6 +98,20 @@ glmm.resids<-function(model){
   print(testDispersion(t1))
   plot(t1)
 }
+#live oyster density rabbit hole-----
+
+site_season_mod <- glmmTMB(
+  oys.density ~ season + (1 | Site),
+  data = rac
+)
+Anova(site_season_mod, type = "III")
+
+
+sample_season_mod <- glmmTMB(
+  oys.density ~ season + (1 | Site/Sample),
+  data = rac
+)
+Anova(sample_season_mod, type = "III")
 ##### ABUNDANCE ----
 ###! microhabitat abundance-----
 lod.ab.samp <- glmmTMB(log(abm2) ~ oys.density*season+ (1|Site) ,data = rac%>% mutate(season = relevel(season,ref="w")))
@@ -207,7 +227,7 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
 
 lod.ab.nmds<-metaMDS(comcomp2[,-1:-5], distance="bray", k=2, trymax = 1000)
 
-w.lod.ab.nmds<-data.frame(scores(lod.ab.nmds,choices=c(1,2),display="sites"),LOD=comcomp2$oys.density, sample=comcomp2$Sample,season=comcomp2$season)
+w.lod.ab.nmds<-data.frame(vegan::scores(lod.ab.nmds,choices=c(1,2),display="sites"),LOD=comcomp2$oys.density, sample=comcomp2$Sample,season=comcomp2$season)
 
 lod.ab.nmdsplot <- ggplot(w.lod.ab.nmds, aes(y=NMDS2,x=NMDS1,color=LOD, shape=season))+
   geom_point(size=2)+
@@ -227,6 +247,16 @@ ggplot(w.lod.ab.nmds, aes(x = NMDS1, y = NMDS2)) +
   ) +
   theme_minimal(base_size = 14) +
   theme(legend.position = "right")+ stat_ellipse(aes(group = season), linetype = "dashed", color = "gray40")+ scale_color_viridis_c(option = "plasma")+ facet_wrap(~season)
+
+ggplot(w.lod.ab.nmds, aes(NMDS1, NMDS2, color = LOD)) +
+  geom_point(size = 3) +
+  scale_color_viridis_c() +
+  facet_wrap(~ season) +
+  theme_classic() +
+  labs(
+    title = "NMDS by Season",
+    color = "Live Oyster Density (m⁻²)"
+  )
 ###! reef level comp------
 #nmds for abundance between seasons and live oyster density
 
