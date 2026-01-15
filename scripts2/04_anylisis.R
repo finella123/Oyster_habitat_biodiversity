@@ -27,11 +27,6 @@ rac <- reef2 %>%
   drop_na()%>% # I have 16 sites with no com data because I only processed 6/7 per site
   group_by(Site,season) %>%
   mutate(moys.density = mean(oys.density))
-#%>%
-  # ungroup()%>%
-  # group_by(Site,Sample) %>%
-  # mutate(oys.density = mean(oys.density)) %>%
-  # ungroup()
 
 rac$season <- as.factor(rac$season)
 rac$Site <- as.factor(rac$Site)
@@ -98,7 +93,8 @@ glmm.resids<-function(model){
   print(testDispersion(t1))
   plot(t1)
 }
-#live oyster density rabbit hole-----
+#live oyster density rabbit hole----- 
+#CANNOT GROUP SAMPLES ACROSS SEASON BECAUSE THEY ARE UNIQUE SAMPPLES
 
 site_season_mod <- glmmTMB(
   oys.density ~ season + (1 | Site),
@@ -493,8 +489,202 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
   theme_minimal() +
   theme(legend.position = "top")
 ### reef level FFG abundance-----
+### c= carnivore-----
+carnivore_mod_reef <- glmmTMB(
+  log(ffabm2 + 1) ~ moys.density * season + (1 | Site),
+  data = ffg_long %>% filter(FFG == "c")%>% mutate(season = relevel(season,ref="w")))
+glmm.resids(carnivore_mod_reef)
+summary(carnivore_mod_reef)
+Anova(carnivore_mod_reef, type = "III")
+
+# Extract residuals
+res <- residuals(carnivore_mod_reef)
+shapiro.test(res)
+
+# plot log(abm2) vs oyster density, color by season
+preds <- ggpredict(carnivore_mod_reef, terms = c("moys.density", "season"))
+
+ggplot(preds, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Live Oyster Density",
+    y = expression(Predicted~abundance~(m^2)),
+    color = "Season",
+    fill = "Season",
+    title = "Predicted Carnivore Abundance by Mean Oyster Density and Season"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+### d= deposit feeders-----
+deposit_mod_reef <- glmmTMB(
+  log(ffabm2 + 1) ~ moys.density * season + (1 | Site),
+  data = ffg_long %>% filter(FFG == "d")%>% mutate(season = relevel(season,ref="w")))
+glmm.resids(deposit_mod_reef)
+summary(deposit_mod_reef)
+Anova(deposit_mod_reef, type = "III")
+
+# Extract residuals
+res <- residuals(deposit_mod_reef)
+shapiro.test(res)
+
+# plot log(abm2) vs oyster density, color by season
+preds <- ggpredict(deposit_mod_reef, terms = c("moys.density", "season"))
+
+ggplot(preds, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Live Oyster Density",
+    y = expression(Predicted~abundance~(m^2)),
+    color = "Season",
+    fill = "Season",
+    title = "Predicted Deposit feeders Abundance by Oyster Density and Season"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+### o=omnivore-----
+omnivore_mod_reef <- glmmTMB(
+  log(ffabm2 + 1) ~ moys.density * season + (1 | Site),
+  data = ffg_long %>% filter(FFG == "o")%>% mutate(season = relevel(season,ref="w")))
+glmm.resids(omnivore_mod_reef)
+summary(omnivore_mod_reef)
+Anova(omnivore_mod_reef, type = "III")
+
+# Extract residuals
+res <- residuals(omnivore_mod_reef)
+shapiro.test(res)
+
+# plot log(abm2) vs oyster density, color by season
+preds <- ggpredict(omnivore_mod_reef, terms = c("moys.density", "season"))
+
+ggplot(preds, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Live Oyster Density",
+    y = expression(Predicted~abundance~(m^2)),
+    color = "Season",
+    fill = "Season",
+    title = "Predicted omnivore Abundance by Oyster Density and Season"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+### p=parasite-----
+#tried lots but low abundance 
+parasite_mod_reef <- glmmTMB(
+  log(ffabm2+1) ~ moys.density * season + (1 | Site),
+  data = ffg_long %>% filter(FFG == "p")%>% mutate(season = relevel(season,ref="w")))
+glmm.resids(parasite_mod_reef)
+summary(parasite_mod_reef)
+Anova(parasite_mod_reef, type = "III")
+
+# Extract residuals
+res <- residuals(parasite_mod_reef)
+shapiro.test(res)
+
+# plot log(abm2) vs oyster density, color by season
+preds <- ggpredict(parasite_mod_reef, terms = c("moys.density", "season"))
+
+ggplot(preds, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Live Oyster Density",
+    y = expression(Predicted~abundance~(m^2)),
+    color = "Season",
+    fill = "Season",
+    title = "Predicted parasite Abundance by Oyster Density and Season"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+### s = suspension feeder-----
+suspension_mod_reef <- glmmTMB(
+  log(ffabm2+1)~ moys.density * season + (1 | Site),
+  data = ffg_long %>% filter(FFG == "s")%>% mutate(season = relevel(season,ref="w")))
+glmm.resids(suspension_mod_reef)
+summary(suspension_mod_reef)
+Anova(suspension_mod_reef, type = "III")
+
+# Extract residuals
+res <- residuals(suspension_mod_reef)
+shapiro.test(res)
+
+# plot log(abm2) vs oyster density, color by season
+preds <- ggpredict(suspension_mod_reef, terms = c("moys.density", "season"))
+
+ggplot(preds, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Live Oyster Density",
+    y = expression(Predicted~abundance~(m^2)),
+    color = "Season",
+    fill = "Season",
+    title = "Predicted suspension feeder Abundance by Oyster Density and Season"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+### g=grazers-----
+grazer_mod_reef <- glmmTMB(
+  log(ffabm2+1) ~ moys.density * season + (1 | Site),
+  data = ffg_long %>% filter(FFG == "g")%>% mutate(season = relevel(season,ref="w")))
+glmm.resids(grazer_mod_reef)
+summary(grazer_mod_reef)
+Anova(grazer_mod_reef, type = "III")
+
+# Extract residuals
+res <- residuals(grazer_mod_reef)
+shapiro.test(res)
+
+# plot log(abm2) vs oyster density, color by season
+preds <- ggpredict(grazer_mod_reef, terms = c("moys.density", "season"))
+
+ggplot(preds, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Live Oyster Density",
+    y = expression(Predicted~abundance~(m^2)),
+    color = "Season",
+    fill = "Season",
+    title = "Predicted grazer Abundance by Oyster Density and Season"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+
+### oyster consumers ---------
+oys_pred_mod_reef <- glmmTMB(
+  opabm2 ~ moys.density * season + (1 | Site),
+  data = oys.pred %>% mutate(season = relevel(season,ref="w")))
+glmm.resids(oys_pred_mod_reef)
+summary(oys_pred_mod_reef)
+Anova(oys_pred_mod_reef, type = "III")
+
+# Extract residuals
+res <- residuals(oys_pred_mod_reef)
+shapiro.test(res)
+
+# plot oys pred abm2 vs oyster density, color by season
+preds <- ggpredict(oys_pred_mod_reef, terms = c("moys.density", "season"))
+
+ggplot(preds, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Live Oyster Density",
+    y = expression(Predicted~abundance~(m^2)),
+    color = "Season",
+    fill = "Season",
+    title = "Predicted Oyster Predator Abundance by Oyster Density and Season"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "top")
 ### site level FFG abndance-----
 ##### FFG COMMUNITY COMPOSITION-----
-### microhabitat FFG comp-----
-### reef level FFG comp-----
-### site level FFG comp-----
