@@ -734,3 +734,113 @@ top_contributors_df <- do.call(rbind, top_contributors)
 row.names(top_contributors_df) <- NULL
 
 top_contributors_df
+
+
+
+
+
+
+
+####NMDS mess around -------
+mlod.ab.nmds<-metaMDS(comcomp2[,-1:-5], distance="bray", k=2, trymax = 1000)
+
+# ---------------------------------------------------------
+# 1. Separate metadata and species matrix
+# ---------------------------------------------------------
+
+meta <- comcomp2 %>%
+  select(Site, Sample, season, oys.density, moys.density)
+
+species <- comcomp2 %>%
+  select(-(Site: moys.density))   # drops first 5 columns, keeps species only
+# 1. Hellinger transform 
+species <- decostand(species, method = "hellinger")
+# ---------------------------------------------------------
+# 2. Run NMDS (Bray-Curtis)
+# ---------------------------------------------------------
+
+set.seed(123)
+nmds <- metaMDS(species, distance = "bray", k = 2, trymax = 200)
+
+# Extract NMDS scores for plotting
+nmds_scores <- as.data.frame(scores(nmds, display = "sites"))
+nmds_scores <- bind_cols(meta, nmds_scores)
+
+# ---------------------------------------------------------
+# 3. Fit species vectors (envfit)
+# ---------------------------------------------------------
+
+fit <- envfit(nmds, species, permutations = 999)
+
+# Extract significant vectors (p < 0.05)
+vec <- as.data.frame(scores(fit, display = "vectors"))
+vec$species <- rownames(vec)
+#vec_sig <- vec[fit$vectors$pvals < 0.003, ]
+# Calculate vector lengths 
+vec$length <- sqrt(vec$NMDS1^2 + vec$NMDS2^2) 
+# Select top 5 longest vectors 
+vec_top5 <- vec %>% arrange(desc(length)) %>% slice(1:5)
+# ---------------------------------------------------------
+# 4. Plot NMDS with ggplot2
+# ---------------------------------------------------------
+
+ggplot(nmds_scores, aes(x = NMDS1, y = NMDS2)) +
+  geom_point(aes(shape = season, color = oys.density), size = 3) +
+  scale_color_gradient(low = "lightblue", high = "darkblue") +
+  geom_segment(data = vec_sig,
+               aes(x = 0, y = 0, xend = NMDS1, yend = NMDS2),
+               arrow = arrow(length = unit(0.3, "cm")),
+               color = "red", linewidth = 0.8) +
+  geom_text(data = vec_sig,
+            aes(x = NMDS1, y = NMDS2, label = species),
+            color = "red", vjust = -0.5, size = 3) +
+  theme_minimal(base_size = 14) +
+  labs(title = "NMDS of Community Composition",
+       color = "Oyster Density",
+       shape = "Season")
+
+
+ggplot(nmds_scores, aes(NMDS1, NMDS2)) +
+  geom_point(aes(shape = season, color = oys.density), size = 3) +
+  scale_color_gradient(low = "lightblue", high = "darkblue") +
+  
+  # Ellipses by season
+  stat_ellipse(aes(group = season), type = "t", linewidth = 1) +
+  
+  # Species vectors
+  geom_segment(data = vec_sig,
+               aes(x = 0, y = 0, xend = NMDS1, yend = NMDS2),
+               arrow = arrow(length = unit(0.3, "cm")),
+               color = "red", linewidth = 0.8) +
+  geom_text(data = vec_sig,
+            aes(label = species),
+            color = "red", vjust = -0.5, size = 3) +
+  
+  theme_minimal(base_size = 14) +
+  labs(title = "NMDS (Hellinger-transformed community)",
+       color = "Oyster Density",
+       shape = "Season")
+
+ggplot(nmds_scores, aes(NMDS1, NMDS2)) +
+  geom_point(aes(shape = season, color = oys.density), size = 3, alpha = 1) +
+  #scale_color_gradient(low = "lightblue", high = "darkblue") +
+  stat_ellipse(aes(group = season),  linetype = "dashed", color = "gray40")+ 
+  scale_color_viridis_c(option = "plasma") +
+  
+  # Top 5 species vectors
+  geom_segment(data = vec_top5,
+               aes(x = 0, y = 0, xend = NMDS1, yend = NMDS2),
+               arrow = arrow(length = unit(0.3, "cm")),
+               color = "red", linewidth = 0.8) +
+  geom_text(data = vec_top5,
+            aes(label = species),
+            color = "red", vjust = -0.5, size = 3) +
+  
+  theme_minimal(base_size = 14) +
+  labs(title = "NMDS (Hellinger-transformed community)",
+       color = "Live Oyster Density",
+       shape = "Season")
+
+
+
+
