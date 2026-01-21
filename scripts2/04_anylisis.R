@@ -1,7 +1,6 @@
 # This is my Master's thesis project- exploring the effects of oyster trophic interactions on the benthic community
 #This script is to anlyze the data
 
-#9/25/25 note- i might have to go back and run these analyses again for the regular community because I did mean oyster density by season when I think I should have done mean oyster density by just site. 
 source("scripts2/01_install_packages.R")
 
 #loading data and getting into correct format for analysis-----
@@ -95,19 +94,19 @@ glmm.resids<-function(model){
 }
 #live oyster density rabbit hole----- 
 #CANNOT GROUP SAMPLES ACROSS SEASON BECAUSE THEY ARE UNIQUE SAMPPLES
-
-site_season_mod <- glmmTMB(
-  oys.density ~ season + (1 | Site),
-  data = rac
-)
-Anova(site_season_mod, type = "III")
-
-
-sample_season_mod <- glmmTMB(
-  oys.density ~ season + (1 | Site/Sample),
-  data = rac
-)
-Anova(sample_season_mod, type = "III")
+# 
+# site_season_mod <- glmmTMB(
+#   oys.density ~ season + (1 | Site),
+#   data = rac
+# )
+# Anova(site_season_mod, type = "III")
+# 
+# 
+# sample_season_mod <- glmmTMB(
+#   oys.density ~ season + (1 | Site/Sample),
+#   data = rac
+# )
+# Anova(sample_season_mod, type = "III")
 ##### ABUNDANCE ----
 ###! microhabitat abundance-----
 lod.ab.samp <- glmmTMB(log(abm2) ~ oys.density*season+ (1|Site) ,data = rac%>% mutate(season = relevel(season,ref="w")))
@@ -225,11 +224,6 @@ lod.ab.nmds<-metaMDS(comcomp2[,-1:-5], distance="bray", k=2, trymax = 1000)
 
 w.lod.ab.nmds<-data.frame(vegan::scores(lod.ab.nmds,choices=c(1,2),display="sites"),LOD=comcomp2$oys.density, sample=comcomp2$Sample,season=comcomp2$season)
 
-lod.ab.nmdsplot <- ggplot(w.lod.ab.nmds, aes(y=NMDS2,x=NMDS1,color=LOD, shape=season))+
-  geom_point(size=2)+
-   theme(plot.title = element_text(hjust=0.5)) +
-   ggtitle("Abundance")
-lod.ab.nmdsplot
 
 ggplot(w.lod.ab.nmds, aes(x = NMDS1, y = NMDS2)) +
   geom_point(aes(color = LOD, shape = season), size = 3, alpha = 0.9) +
@@ -242,17 +236,24 @@ ggplot(w.lod.ab.nmds, aes(x = NMDS1, y = NMDS2)) +
     shape = "Season"
   ) +
   theme_minimal(base_size = 14) +
-  theme(legend.position = "right")+ stat_ellipse(aes(group = season), linetype = "dashed", color = "gray40")+ scale_color_viridis_c(option = "plasma")+ facet_wrap(~season)
+  theme(legend.position = "right")+ stat_ellipse(aes(group = season), linetype = "dashed", color = "gray40")+ scale_color_viridis_c(option = "plasma")
 
-ggplot(w.lod.ab.nmds, aes(NMDS1, NMDS2, color = LOD)) +
-  geom_point(size = 3) +
-  scale_color_viridis_c() +
-  facet_wrap(~ season) +
-  theme_classic() +
-  labs(
-    title = "NMDS by Season",
-    color = "Live Oyster Density (m⁻²)"
-  )
+# 
+# 
+# lod.ab.nmdsplot <- ggplot(w.lod.ab.nmds, aes(y=NMDS2,x=NMDS1,color=LOD, shape=season))+
+#   geom_point(size=2)+
+#   theme(plot.title = element_text(hjust=0.5)) +
+#   ggtitle("Abundance")
+# lod.ab.nmdsplot
+# ggplot(w.lod.ab.nmds, aes(NMDS1, NMDS2, color = LOD)) +
+#   geom_point(size = 3) +
+#   scale_color_viridis_c() +
+#   facet_wrap(~ season) +
+#   theme_classic() +
+#   labs(
+#     title = "NMDS by Season",
+#     color = "Live Oyster Density (m⁻²)"
+#   )
 ###! reef level comp------
 #nmds for abundance between seasons and live oyster density
 
@@ -661,15 +662,11 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
 
 ### oyster consumers ---------
 oys_pred_mod_reef <- glmmTMB(
-  opabm2 ~ moys.density * season + (1 | Site),
+  log(opabm2) ~ moys.density * season + (1 | Site),
   data = oys.pred %>% mutate(season = relevel(season,ref="w")))
 glmm.resids(oys_pred_mod_reef)
 summary(oys_pred_mod_reef)
 Anova(oys_pred_mod_reef, type = "III")
-
-# Extract residuals
-res <- residuals(oys_pred_mod_reef)
-shapiro.test(res)
 
 # plot oys pred abm2 vs oyster density, color by season
 preds <- ggpredict(oys_pred_mod_reef, terms = c("moys.density", "season"))
@@ -688,3 +685,52 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
   theme(legend.position = "top")
 ### site level FFG abndance-----
 ##### FFG COMMUNITY COMPOSITION-----
+
+
+
+
+####simper mess around-------
+comm_mat <- ffgcomcomp %>%
+  mutate(
+    Site = as.character(Site),
+    Sample = as.character(Sample),
+    season = as.character(season),
+    SampleID = paste(Site, Sample, season, sep = "_")
+  ) %>%
+  select(-Site, -Sample, -season) %>%
+  column_to_rownames("SampleID")%>%
+  ungroup()%>%
+  select(-Site, -oys.density, -moys.density)
+any(duplicated(rownames(comm_mat)))
+str(comm_mat)
+
+comm_tr <- decostand(comm_mat, method = "hellinger")
+
+season_vec <- sub(".*_", "", rownames(comm_tr))  # takes everything after the last "_"
+table(season_vec)  # sanity check counts per season
+
+simper_out <- simper(
+  comm_tr,
+  group = season_vec,
+  permutations = 999
+)
+
+summary(simper_out)
+simper_summary <- summary(simper_out)
+
+# Loop over each pairwise comparison
+top_contributors <- lapply(names(simper_summary), function(pair) {
+  df <- as.data.frame(simper_summary[[pair]])
+  df$FFG <- rownames(df)
+  
+  # Find the FFG with the highest average contribution
+  top <- df[which.max(df$average), c("FFG", "average", "cumsum")]
+  top$comparison <- pair
+  top
+})
+
+# Combine into one data frame
+top_contributors_df <- do.call(rbind, top_contributors)
+row.names(top_contributors_df) <- NULL
+
+top_contributors_df
