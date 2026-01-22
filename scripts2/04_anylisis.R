@@ -107,6 +107,15 @@ glmm.resids<-function(model){
 #   data = rac
 # )
 # Anova(sample_season_mod, type = "III")
+library(ggplot2)
+
+ggplot(rac, aes(x = Site, y = oys.density)) +
+  geom_boxplot(fill = "skyblue", color = "black") +
+  labs(title = "Oyster Density by Site",
+       x = "Site",
+       y = "Oyster Density") +
+  theme_minimal()
+
 ##### ABUNDANCE ----
 ###! microhabitat abundance-----
 lod.ab.samp <- glmmTMB(log(abm2) ~ oys.density*season+ (1|Site) ,data = rac%>% mutate(season = relevel(season,ref="w")))
@@ -134,7 +143,7 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
   theme_minimal() +
   theme(legend.position = "top")
 ###! reef level abundance-----
-mlod.ab.reef <- glmmTMB(log(abm2) ~ moys.density*season+ (1|Site) ,data = rac%>% mutate(season = relevel(season,ref="w")))
+mlod.ab.reef <- glmmTMB(log(abm2) ~ moys.density*season,data = rac%>% mutate(season = relevel(season,ref="w")))
 #using this random effect to account for the shared structure of multiple samples having the sample mlod- so the model doesnt think each mlod is a unique value
 summary(mlod.ab.reef)
 glmm.resids(mlod.ab.reef)
@@ -189,7 +198,7 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
 
 
 ###! reef level richness-----
-mlod.spr.reef <- glmmTMB(sprm2 ~ moys.density*season+ (1|Site) ,data = rac%>% mutate(season = relevel(season,ref="w")))
+mlod.spr.reef <- glmmTMB(sprm2 ~ moys.density*season ,data = rac%>% mutate(season = relevel(season,ref="w")))
 #using this random effect to account for the shared structure of multiple samples having the sample mlod- so the model doesnt think each mlod is a unique value
 summary(mlod.spr.reef)
 glmm.resids(mlod.spr.reef)
@@ -521,7 +530,7 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
 ###! reef level FFG abundance-----
 ###! c= carnivore-----
 carnivore_mod_reef <- glmmTMB(
-  log(ffabm2 + 1) ~ moys.density * season + (1 | Site),
+  log(ffabm2 + 1) ~ moys.density * season,
   data = ffg_long %>% filter(FFG == "c")%>% mutate(season = relevel(season,ref="w")))
 glmm.resids(carnivore_mod_reef)
 summary(carnivore_mod_reef)
@@ -549,7 +558,7 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
 
 ###! d= deposit feeders-----
 deposit_mod_reef <- glmmTMB(
-  log(ffabm2 + 1) ~ moys.density * season + (1 | Site),
+  log(ffabm2 + 1) ~ moys.density * season,
   data = ffg_long %>% filter(FFG == "d")%>% mutate(season = relevel(season,ref="w")))
 glmm.resids(deposit_mod_reef)
 summary(deposit_mod_reef)
