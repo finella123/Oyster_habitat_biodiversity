@@ -20,7 +20,7 @@ com2 <- com1%>%
   summarize(
     sprm2= n_distinct(TaxaID),
     abm2=sum(Abundance.m2))
-  
+
 rac <- reef2 %>%
   left_join(com2, by = c("Site", "Sample", "season"))%>%
   drop_na()%>% # I have 16 sites with no com data because I only processed 6/7 per site
@@ -44,12 +44,12 @@ comcomp <- com1%>%
 comcomp2 <- comcomp[, c("Site", "Sample", "season", "oys.density", "moys.density", "scientific", "Abundance.m2")]%>%
   pivot_wider(names_from = scientific, values_from = Abundance.m2, values_fill = 0)
 
-
+print(comcomp2)
 #data set to anylyze functional feeding groups
 
 ffg4 <- com1%>%
   left_join(ffg3, by = "TaxaID")
-  
+
 ffg5 <- ffg4%>%
   group_by(Site, Sample, season,ffg) %>%
   summarize(
@@ -142,8 +142,74 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
   ) +
   theme_minimal() +
   theme(legend.position = "top")
+ggplot(rac, aes(x = oys.density,
+                y = abm2,
+                color = season)) +
+  geom_point(alpha = 0.6, size = 2) +
+  labs(
+    x = "Live Oyster Density",
+    y = expression(Abundance~(m^2)),
+    color = "Season",
+    title = "Raw Benthic Abundance by Oyster Density and Season"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "top")
 
 
+ggplot(rac, aes(x = oys.density,
+                y = log(abm2),
+                color = Site)) +
+  geom_point(alpha = 0.6, size = 2) +
+  labs(
+    x = "Live Oyster Density",
+    y = expression(log(Abundance~(m^2))),
+    color = "Season",
+    title = "Raw Log-Abundance by Oyster Density and site"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+ggplot(rac, aes(x = oys.density)) +
+  geom_histogram(binwidth = 5, fill = "steelblue", color = "white", alpha = 0.8) +
+  labs(
+    x = "Live Oyster Density",
+    y = "Number of Samples",
+    title = "Distribution of Samples Across Live Oyster Density"
+  ) +
+  theme_minimal()
+
+ggplot(rac, aes(x = oys.density, y = abm2)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(aes(y = abm2), method = "loess")+
+  labs(
+    x = "Live Oyster Density",
+    y = expression(Abundance~(m^2)),
+    color = "Season",
+    title = "Smoothed Relationship Between Abundance and Oyster Density"
+  ) +
+  theme_minimal()
+
+
+ggplot(rac, aes(x = oys.density, y = log(abm2), color = season)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Live Oyster Density",
+    y = expression(log(Abundance~(m^2))),
+    color = "Season",
+    title = "Linear Trend Between Log-Abundance and Oyster Density"
+  ) +
+  theme_minimal()
+
+ggplot(rac, aes(x = oys.density)) +
+  geom_histogram(binwidth = 5, fill = "steelblue", color = "white", alpha = 0.8) +
+  labs(
+    x = "Live Oyster Density",
+    y = "Number of Samples",
+    title = "Distribution of Live Oyster Density Samples"
+  ) +
+  theme_minimal()+
+  facet_wrap(~season)
 
 ###! reef level abundance-----
 mlod.ab.reef <- glmmTMB(log(abm2) ~ moys.density*season,data = rac%>% mutate(season = relevel(season,ref="w")))
@@ -288,6 +354,158 @@ ggplot(nmds_scores, aes(NMDS1, NMDS2)) +
         color = "Live Oyster Density", shape = "Season" )+
   facet_wrap(~season)
 
+
+#Sample × Species × Abundance × oys.density
+species_long <- comcomp2 %>%
+  pivot_longer(
+    cols = 6:47,              # all species columns
+    names_to = "species",
+    values_to = "abundance"
+  )
+
+ggplot(species_long, aes(x = abundance)) +
+  geom_histogram(fill = "steelblue", color = "white") +
+  facet_wrap(~ species, scales = "free") +
+  theme_minimal() +
+  labs(
+    x = "Abundance",
+    y = "Frequency",
+    title = "Distribution of Abundance for Each Species"
+  )
+
+ggplot(species_long, aes(x = abundance, fill = oys.density)) +
+  geom_histogram(color = "white", bins = 20) +
+  facet_wrap(~ species, scales = "free") +
+  scale_fill_viridis_c() +
+  theme_minimal() +
+  labs(
+    x = "Abundance",
+    y = "Frequency",
+    fill = "Live Oyster Density",
+    title = "Species Abundance Distributions by Live Oyster Density"
+  )
+
+
+species_long <- species_long %>%
+  mutate(oys.bin = cut(oys.density,
+                       breaks = c(-Inf, 0, 10, 50, Inf),
+                       labels = c("0", "1–10", "11–75", "75+")))
+
+ggplot(species_long, aes(x = abundance, fill = oys.bin)) +
+  geom_histogram(color = "white", bins = 20, alpha = 0.7) +
+  facet_wrap(~ species, scales = "free") +
+  theme_minimal() +
+  labs(
+    x = "Abundance",
+    y = "Frequency",
+    fill = "Oyster Density Bin",
+    title = "Species Abundance Distributions by Oyster Density Category"
+  )
+
+ggplot(species_long, aes(x = oys.density, y = abundance)) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ species, scales = "free") +
+  theme_minimal() +
+  labs(
+    x = "Live Oyster Density",
+    y = "Abundance",
+    title = "Abundance vs Live Oyster Density for Each Species"
+  )
+
+species_long2 <- species_long %>%
+  mutate(oys.bin = cut(
+    oys.density,
+    breaks = c(-Inf, 0, 10, 50, Inf),
+    labels = c("0", "1–10", "11–50", "50+")
+  ))
+ggplot(species_long2, aes(x = oys.bin, y = abundance)) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  facet_wrap(~ species, scales = "free_y") +
+  theme_minimal() +
+  labs(
+    x = "Live Oyster Density (binned)",
+    y = "Abundance",
+    title = "How Abundance Changes with Live Oyster Density (Boxplots)"
+  )
+
+species_long <- species_long %>%
+  mutate(oys.bin = cut(
+    oys.density,
+    breaks = pretty(oys.density, n = 2),
+    include.lowest = TRUE
+  ))
+
+
+
+
+ggplot(species_long, aes(x = oys.bin, y = abundance)) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  facet_wrap(~ species, scales = "free_y") +
+  theme_minimal() +
+  labs(
+    x = "Live Oyster Density (binned by distribution)",
+    y = "Abundance",
+    title = "How Abundance Changes with Live Oyster Density"
+  )
+
+
+
+species_long <- species_long %>%
+  mutate(oys.bin = ntile(oys.density, 3))
+
+
+# Compute quantile cutpoints
+qs <- quantile(species_long$oys.density, probs = seq(0, 1, length.out = 4), na.rm = TRUE)
+
+# Create pretty labels like "0–12", "12–40", "40–80"
+pretty_labels <- paste0(
+  round(qs[-length(qs)], 1), "–", round(qs[-1], 1)
+)
+
+# Apply labels
+species_long <- species_long %>%
+  mutate(oys.bin = factor(oys.bin, labels = pretty_labels))
+
+
+ggplot(species_long, aes(x = oys.bin, y = abundance)) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  facet_wrap(~ species, scales = "free_y") +
+  theme_minimal() +
+  labs(
+    x = "Live Oyster Density (3 equal‑sized bins)",
+    y = "Abundance",
+    title = "How Abundance Changes with Live Oyster Density"
+  )
+
+
+ggplot(species_long, aes(x = abundance)) +
+  geom_histogram(bins = 20, fill = "steelblue", color = "white") +
+  facet_grid(species ~ oys.bin, scales = "free") +
+  theme_minimal() +
+  labs(
+    x = "Abundance",
+    y = "Frequency",
+    title = "Species Abundance Distributions Across Oyster Density Bins",
+    subtitle = "Oyster density bins are equal‑sized (quantile‑based) with pretty numeric labels"
+  )
+
+ggplot(species_long, aes(x = abundance, fill = oys.bin)) +
+  geom_histogram(color = "white", bins = 20, alpha = 0.7) +
+  facet_wrap(~ species, scales = "free") +
+  theme_minimal() +
+  labs(
+    x = "Abundance",
+    y = "Frequency",
+    fill = "Oyster Density Bin",
+    title = "Species Abundance Distributions by Oyster Density Category"
+  )
+
+
+
+
+
+
+
 ###! reef level comp------
 #nmds for abundance between seasons and mean live oyster density
 # 4. Plot NMDS with ggplot2
@@ -317,6 +535,9 @@ ggplot(nmds_scores, aes(NMDS1, NMDS2)) +
   labs( title = "NMDS (Hellinger-transformed community)", 
         color = "Mean Live Oyster Density", shape = "Season" )+
   facet_wrap(~season)
+
+
+
 ### site level comp-----
 
 
