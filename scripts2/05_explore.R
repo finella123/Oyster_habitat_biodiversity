@@ -121,6 +121,10 @@ oys.pred$season <- factor(oys.pred$season)
 rac_filtered <- rac %>%
   filter(oys.density <= 150)
 
+#community metric data set with samples above 150 LOD removed and amphipods and isopopds removed
+rac_noampsfil <- rac_noamps%>%
+  filter(oys.density<= 150)
+
 #function for residuals
 glmm.resids<-function(model){
   t1 <- simulateResiduals(model)
@@ -259,6 +263,39 @@ ggplot(rac, aes(x = oys.density, y = log(abm2), color = season)) +
     title = "Linear Trend Between Log-Abundance and Oyster Density"
   ) +
   theme_minimal()
+
+
+#explore data original-------
+
+#using rac
+
+
+#smooth relationship logged w season
+ggplot(rac, aes(x = oys.density, y = log(abm2), color=season)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess") +
+  labs(
+    x = "Live Oyster Density",
+    y = expression(log(Abundance~(m^2))),
+    title = "Smoothed Relationship Between Log Abundance and Oyster Density (original)"
+  ) +
+  theme_minimal()+
+  facet_wrap(~season, scales="free_y")
+
+
+#linear logged
+ggplot(rac, aes(x = oys.density, y = log(abm2), color = season)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Live Oyster Density",
+    y = expression(log(Abundance~(m^2))),
+    color = "Season",
+    title = "Linear Trend Between Log-Abundance and Oyster Density original"
+  ) +
+  theme_minimal()+
+  facet_wrap(~season, scales="free_y")
+
 
 #explore data with removal of samples with LOD above 150---------
 
@@ -545,6 +582,87 @@ ggplot(rac_noamps, aes(x = oys.density, y = abm2, color = season)) +
   ) +
   theme_minimal()+
   facet_wrap(~season, scales="free_y")
+#explore data with removal of samples with LOD above 150 and amphipods and isopods-------
+
+#distribution of abundance 
+ggplot(rac_noampsfil, aes(x = abm2)) +
+  # Histogram scaled to density
+  geom_histogram(aes(y = after_stat(density)),
+                 bins = 300,
+                 color = "black",
+                 fill = "grey70") +
+  # Normal distribution curve
+  stat_function(
+    fun = dnorm,
+    args = list(
+      mean = mean(rac_noampsfil$abm2, na.rm = TRUE),
+      sd   = sd(rac_noampsfil$abm2, na.rm = TRUE)
+    ),
+    color = "red",
+    linewidth = 1
+  ) +
+  labs(
+    x = "Abundance (m²)",
+    y = "Density",
+    title = "Distribution of Abundance with Normal Fit"
+  ) +
+  theme_minimal()
+
+#logged
+ggplot(rac_noampsfil, aes(x = log(abm2))) +
+  geom_histogram(aes(y = after_stat(density)), bins = 300, color = "black", fill = "grey70") +
+  stat_function(fun = dnorm,
+                args = list(mean = mean(log(rac_noampsfil$abm2), na.rm = TRUE),
+                            sd   = sd(log(rac_noampsfil$abm2), na.rm = TRUE)),
+                color = "red", linewidth = 1) +
+  labs(x = "Log Abundance (m²)",
+       y = "Density",
+       title = "Distribution of Log Abundance with Normal Fit") +
+  theme_minimal()
+
+#using rac_noampsfil logged
+
+#just data points logged
+ggplot(rac_noampsfil, aes(x = oys.density,
+                       y = log(abm2),
+                       color = season)) +
+  geom_point(alpha = 0.6, size = 2) +
+  labs(
+    x = "Live Oyster Density",
+    y = expression(log(Abundance~(m^2))),
+    color = "Season",
+    title = "Raw Log-Abundance by Oyster Density and season  filtered no amphipods/isopods"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+
+#smooth relationship logged w season
+ggplot(rac_noampsfil, aes(x = oys.density, y = log(abm2), color=season)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess") +
+  labs(
+    x = "Live Oyster Density",
+    y = expression(log(Abundance~(m^2))),
+    title = "Smoothed Relationship Between Log Abundance and Oyster Density filtered no amphipods/isopods"
+  ) +
+  theme_minimal()+
+  facet_wrap(~season, scales="free_y")
+
+
+#linear logged
+ggplot(rac_noampsfil, aes(x = oys.density, y = log(abm2), color = season)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    x = "Live Oyster Density",
+    y = expression(log(Abundance~(m^2))),
+    color = "Season",
+    title = "Linear Trend Between Log-Abundance and Oyster Density filtered no amphipods/isopods"
+  ) +
+  theme_minimal()+
+  facet_wrap(~season, scales="free_y")
+
 #### SPECIES RICHNESS-----
 ###! microhabitat richness-----
 lod.sprm2.samp <- glmmTMB(sprm2 ~ oys.density*season+ (1|Site) ,data = rac%>% mutate(season = relevel(season,ref="w")))
