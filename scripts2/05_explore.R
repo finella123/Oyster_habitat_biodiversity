@@ -70,6 +70,9 @@ comcomp <- com1%>%
   group_by(Site, season) %>%
   mutate(moys.density = mean(oys.density)) %>%
   ungroup()
+#for maddy
+write.csv(comcomp,"wdata2/oyster_reef_benthic_community.csv")
+
 comcomp2 <- comcomp[, c("Site", "Sample", "season", "oys.density", "moys.density", "scientific", "Abundance.m2")]%>%
   pivot_wider(names_from = scientific, values_from = Abundance.m2, values_fill = 0)
 
@@ -100,6 +103,11 @@ ffg_long$FFG <- factor(ffg_long$FFG)
 ffg_long$season <- factor(ffg_long$season)
 ffg_long$Site <- factor(ffg_long$Site)
 ffg_long$Sample <- factor(ffg_long$Sample)
+
+
+#for maddy
+write.csv(ffg_long,"wdata2/functional_feeding_group_data.csv")
+
 
 #oyster predator dataset
 oys.pred <- ffg4%>%
